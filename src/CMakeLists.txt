@@ -1,3 +1,9 @@
+add_library(pico_rolling_code_storage pico_rolling_code_storage.cc pico_rolling_code_storage.h)
+target_link_libraries(pico_rolling_code_storage PUBLIC pico_flash somfy jagsarduino hardware_flash)
+
+add_executable(pico_rolling_code_storage_test pico_rolling_code_storage_test.cc)
+target_link_libraries(pico_rolling_code_storage_test PUBLIC pico_rolling_code_storage pico_stdlib somfy hardware_flash pico_flash)
+
 add_library(rfm_ook rfm_ook.cc)
 target_link_libraries(rfm_ook PUBLIC pico_stdlib hardware_spi hardware_gpio)
 target_compile_features(rfm_ook PRIVATE cxx_std_23)
