@@ -33,15 +33,16 @@ set(PICO_BOARD "pico_w")
 
 pico_sdk_init()
 
-FetchContent_MakeAvailable(jagspico somfy)
-
 add_compile_options(-ffunction-sections -fdata-sections -Wl,--gc-sections)
+
+FetchContent_MakeAvailable(jagspico somfy)
 
 file(GLOB somfy_srcs "${somfy_SOURCE_DIR}/src/*.cpp")
 add_library(somfy ${somfy_srcs})
 target_include_directories(somfy PUBLIC ${somfy_SOURCE_DIR}/src)
-target_link_libraries(somfy PRIVATE jagsarduino stdc++)
-target_compile_features(somfy PRIVATE cxx_std_23)
+target_link_libraries(somfy PUBLIC jagsarduino stdc++)
+target_compile_features(somfy PUBLIC cxx_std_23)
+target_compile_options(somfy PUBLIC -DDEBUG=1 -DARDUINO_ARCH_AVR=1)
 
 add_subdirectory(src)
 

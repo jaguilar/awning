@@ -12,4 +12,4 @@ add_pico_executable(rfm_ook_test rfm_ook_test.cc)
 target_link_libraries(rfm_ook_test PRIVATE rfm_ook pico_stdlib pico_time somfy)
 
 add_pico_executable(awning awning.cc)
-target_link_libraries(awning common jagsarduino somfy hardware_flash)
+target_link_libraries(awning common_nonet jagsarduino somfy pico_rolling_code_storage pico_stdlib)
