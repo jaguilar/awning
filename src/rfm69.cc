@@ -131,8 +131,8 @@ void RfmSpiDriver::SetPower(uint8_t power_level) {
 
 void RfmSpiDriver::SetCarrierFrequency(float freq_hz) {
   constexpr uint8_t kWriteFreqBaseReg = 0x07 | kRegisterWriteFlag;
-  constexpr uint32_t kFxosc = 32'000'000.0;
-  constexpr uint32_t kFstep = kFxosc / (1 << 19);
+  constexpr float kFxosc = 32'000'000;
+  constexpr float kFstep = kFxosc / (1 << 19);
   const uint32_t num_steps = freq_hz / kFstep;
   const std::array<uint8_t, 4> freq_tx = {
       kWriteFreqBaseReg,
