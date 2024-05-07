@@ -201,7 +201,8 @@ void radio_task(void *) {
 }
 
 void create_tasks() {
-  xTaskCreate(button_task, "button_task", 512, nullptr, 1, nullptr);
+  xTaskCreateAffinitySet(
+      button_task, "button_task", 512, nullptr, 1, 0b01, nullptr);
   xTaskCreate(radio_task, "radio_task", 512, nullptr, 2, nullptr);
   vTaskDelete(nullptr);
 }
