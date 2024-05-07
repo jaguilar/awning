@@ -73,7 +73,7 @@ void GetCommandBlocking(CommandMessage &m) {
 // we received while we were transmitting a radio message before blocking.
 void DrainCommandQueue() {
   CommandMessage m;
-  while (xQueueReceive(CommandQueue(), nullptr, 0) == pdTRUE) {
+  while (xQueueReceive(CommandQueue(), &m, 0) == pdTRUE) {
   }
 }
 
@@ -152,6 +152,10 @@ void radio_task(void *) {
   driver.SetDataMode(RfmSpiDriver::kContinuousWithoutSynchronizer);
   driver.SetPower(0b1111'1111);
 
+  // Set the emitter pin up.
+  gpio_init(15);
+  gpio_set_dir(15, true);
+
   PicoFlashRCS storage;
   SomfyRemote remote(kPinRadioDio2, SOMFY_RADIO_ADDRESS, &storage);
 
@@ -182,6 +186,7 @@ void radio_task(void *) {
 
     // We will send this command. Turn on the radio and wait for it to become
     // ready.
+    driver.SetPower(0b1111'1111);
     driver.SetMode(RfmSpiDriver::kTransmit);
     printf("Waiting for tx ready.\n");
     while (!(driver.GetRegIrqFlags() & RfmSpiDriver::kTxReady)) {
@@ -189,7 +194,7 @@ void radio_task(void *) {
     }
 
     printf("Sending command:%hhu\n", static_cast<byte>(message.command));
-    remote.sendCommand(message.command);
+    remote.sendCommand(message.command, 1);
 
     driver.SetMode(RfmSpiDriver::kSleep);
     last_message = message;
