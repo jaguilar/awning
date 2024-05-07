@@ -1,10 +1,12 @@
-#include "rfm_ook.h"
+#include "rfm69.h"
 
 #include <algorithm>
 #include <cstdint>
 
+#include "hardware/gpio.h"
+#include "pico/printf.h"
 #include "pico/time.h"
-#include "rfm_ook_config.h"
+#include "rfm69_default_config.h"
 
 namespace jagsawning {
 
@@ -40,12 +42,12 @@ RfmSpiDriver RfmSpiDriver::Create(const RfmSpiDriverConfig& config) {
 
 RfmSpiDriver RfmSpiDriver::Create() {
   return Create({
-      .spi = RFM_OOK_SPI,
-      .miso_pin = RFM_OOK_SPI_MISO,
-      .mosi_pin = RFM_OOK_SPI_MOSI,
-      .sck_pin = RFM_OOK_SPI_SCK,
-      .cs_pin = RFM_OOK_SPI_CS,
-      .reset_pin = RFM_OOK_RESET,
+      .spi = RFM69_DEFAULT_SPI,
+      .miso_pin = RFM69_DEFAULT_SPI_MISO,
+      .mosi_pin = RFM69_DEFAULT_SPI_MOSI,
+      .sck_pin = RFM69_DEFAULT_SPI_SCK,
+      .cs_pin = RFM69_DEFAULT_SPI_CS,
+      .reset_pin = RFM69_DEFAULT_RESET,
   });
 }
 
@@ -132,8 +134,6 @@ void RfmSpiDriver::SetCarrierFrequency(float freq_hz) {
   constexpr uint32_t kFxosc = 32'000'000.0;
   constexpr uint32_t kFstep = kFxosc / (1 << 19);
   const uint32_t num_steps = freq_hz / kFstep;
-  printf("%0d\n", num_steps);
-
   const std::array<uint8_t, 4> freq_tx = {
       kWriteFreqBaseReg,
       static_cast<uint8_t>(num_steps >> 16),

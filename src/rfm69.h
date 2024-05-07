@@ -3,9 +3,7 @@
 
 #include <expected>
 #include <span>
-#include <string>
 
-#include "hardware/gpio.h"
 #include "hardware/spi.h"
 
 namespace jagsawning {
@@ -61,7 +59,7 @@ class RfmSpiDriver {
 
   // Get status register. There are a few other flags but they don't seem useful
   // right now.
-  enum {
+  enum RegIrqFlagValues {
     kModeReady = 0xb1000'0000,
     kRxReady = 0b0100'0000,
     kTxReady = 0b0010'0000,

@@ -4,12 +4,13 @@ target_link_libraries(pico_rolling_code_storage PUBLIC pico_flash somfy jagsardu
 add_executable(pico_rolling_code_storage_test pico_rolling_code_storage_test.cc)
 target_link_libraries(pico_rolling_code_storage_test PUBLIC pico_rolling_code_storage pico_stdlib somfy hardware_flash pico_flash)
 
-add_library(rfm_ook rfm_ook.cc)
-target_link_libraries(rfm_ook PUBLIC pico_stdlib hardware_spi hardware_gpio)
-target_compile_features(rfm_ook PRIVATE cxx_std_23)
+add_library(rfm69 rfm69.cc)
+target_link_libraries(rfm69 PUBLIC pico_stdlib hardware_spi hardware_gpio)
+target_compile_features(rfm69 PRIVATE cxx_std_23)
 
-add_pico_executable(rfm_ook_test rfm_ook_test.cc)
-target_link_libraries(rfm_ook_test PRIVATE rfm_ook pico_stdlib pico_time somfy)
+add_pico_executable(rfm69_test rfm69_test.cc)
+target_link_libraries(rfm69_test PRIVATE rfm69 pico_stdlib pico_time somfy)
 
 add_pico_executable(awning awning.cc)
-target_link_libraries(awning common_nonet jagsarduino somfy pico_rolling_code_storage pico_stdlib)
+target_link_libraries(awning common_nonet jagsarduino somfy pico_rolling_code_storage pico_stdlib rfm69)
+target_compile_options(awning PRIVATE -DSOMFY_RADIO_ADDRESS=0x12345678)

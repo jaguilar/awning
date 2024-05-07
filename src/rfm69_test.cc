@@ -1,7 +1,6 @@
-#include "rfm_ook.h"
+#include "rfm69.h"
 
 #include <cstdio>
-#include <limits>
 
 #include "RollingCodeStorage.h"
 #include "SomfyRemote.h"
