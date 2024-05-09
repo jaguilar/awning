@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/secrets.cmake)
+  include(secrets.cmake)
+endif()
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -45,6 +49,3 @@ target_compile_features(somfy PUBLIC cxx_std_23)
 target_compile_options(somfy PUBLIC -DDEBUG=1 -DARDUINO_ARCH_AVR=1)
 
 add_subdirectory(src)
-
-
-
