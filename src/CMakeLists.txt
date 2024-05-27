@@ -21,5 +21,5 @@ target_link_libraries(homeassistant_service_test PRIVATE homeassistant_service p
 target_compile_features(homeassistant_service_test PUBLIC cxx_std_23)
 
 add_pico_executable(awning awning.cc)
-target_link_libraries(awning common jagsarduino somfy pico_rolling_code_storage pico_stdlib rfm69 pico_lwip_mqtt)
-target_compile_options(awning PRIVATE -DSOMFY_RADIO_ADDRESS=0x12345678 -DMQTT_HOST="${MQTT_HOST}" -DMQTT_USER="${MQTT_USER}" -DMQTT_PASSWORD="${MQTT_PASSWORD}" -DMQTT_CLIENT_ID="awning_controller" -DMQTT_TOPIC="/homeautomation/awning/weathercontrol")
+target_link_libraries(awning common jagsarduino somfy pico_rolling_code_storage pico_stdlib rfm69 pico_lwip_mqtt freertosxx)
+target_compile_options(awning PRIVATE -DSOMFY_RADIO_ADDRESS=0x12345678)
