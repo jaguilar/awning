@@ -57,14 +57,21 @@ int main() {
   }
   printf("tx ready\n");
 
+  driver.SetMode(RfmSpiDriver::kSleep);
+
+  uint8_t test_reg1 = ReadRegister(0x58);
+  if (test_reg1 != 0x1b) {
+    printf("unexpected value for test reg1: %0x\n", test_reg1);
+    exit(1);
+  }
+
   FixedRollingCodeStorage storage(0x1234);
   gpio_init(15);
   gpio_set_dir(15, true);
-  SomfyRemote remote(static_cast<unsigned char>(15), 0x123456, &storage);
+  SomfyRemote remote(static_cast<unsigned char>(15), 0x7357, &storage);
   remote.setup();
   while (true) {
     remote.sendCommand(Command::My, 7);
-    sleep_ms(10000);
   }
 
   printf("PASS\n");
