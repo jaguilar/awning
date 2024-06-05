@@ -94,4 +94,4 @@ void DoTest() {
 
 }  // namespace jagsawning
 
-extern "C" void main_task(void*) { awning::DoTest(); }
+extern "C" void main_task(void*) { jagsawning::DoTest(); }
