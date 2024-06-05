@@ -70,7 +70,7 @@ class SomfyController {
       sleep_ms(100);
     }
     printf("Transmit ready\n");
-    remote_.sendCommand(c, 0);
+    remote_.sendCommand(c, 3);
     printf("Transmit done, sleeping\n");
     rfm_driver_.SetMode(RfmSpiDriver::kSleep);
   }
@@ -81,10 +81,8 @@ class SomfyController {
   }
 
   RfmSpiDriver rfm_driver_;
-  // Remote address and RCS are just for testing. Will change to real storage
-  // for final release.
-  FixedRollingCodeStorage storage_{0x1234};
-  SomfyRemote remote_{kDataPin, 0x7357, &storage_};
+  PicoFlashRCS storage_;
+  SomfyRemote remote_{kDataPin, SOMFY_RADIO_ADDRESS, &storage_};
 };
 std::unique_ptr<SomfyController> g_somfy_controller = nullptr;
 freertosxx::Mutex g_controller_mutex;
@@ -237,8 +235,12 @@ void homeassistant_task(void*) {
           absolute_time_diff_us(
               get_absolute_time(), time_when_state_change_done) /
           1000;
-      timeout = pdMS_TO_TICKS(ms_til_timeout);
+      if (ms_til_timeout > 0) {
+        timeout = pdMS_TO_TICKS(ms_til_timeout);
+      }
     }
+
+    constexpr int kCoverCloseOpenTime = 8000;
 
     // Wait for a command to be received.
     EventBits_t event = command_event.Wait(
@@ -252,29 +254,40 @@ void homeassistant_task(void*) {
       current_state = dest_state;
       time_when_state_change_done = at_the_end_of_time;
     } else if (event & HomeAssistantService::kCmdStop) {
+      // Sad story: if we send the stop command while the cover isn't actually
+      // moving it will open. This isn't good but I don't know of any way to
+      // address it.
       command = ::Command::My;
       current_state = dest_state = HomeAssistantService::kStopped;
       time_when_state_change_done = at_the_end_of_time;
     } else if (event & HomeAssistantService::kCmdOpen) {
       // In my deployment, what we want isn't full-open. The "My" command is
       // programmed to stop the awning at the right spot.
+      // 
+      // Bug: if the cover is currently closing, pressing "My" will simply stop
+      // it from closing. We don't have any true feedback from the cover to know
+      // if it is closing or not, so we just have to hope. The less bad thing
+      // would be to stop it closing, as opposed to another bad thing that could
+      // happen which would be to open it.
       command = ::Command::My;
       current_state = HomeAssistantService::kOpening;
       dest_state = HomeAssistantService::kOpen;
-      time_when_state_change_done = delayed_by_ms(get_absolute_time(), 5000);
+      time_when_state_change_done =
+          delayed_by_ms(get_absolute_time(), kCoverCloseOpenTime);
     } else {
       assert(event & HomeAssistantService::kCmdClose);
       command = ::Command::Up;
       current_state = HomeAssistantService::kClosing;
       dest_state = HomeAssistantService::kClosed;
-      time_when_state_change_done = delayed_by_ms(get_absolute_time(), 5000);
+      time_when_state_change_done =
+          delayed_by_ms(get_absolute_time(), kCoverCloseOpenTime);
     }
 
+    (*service)->SetState(current_state);
     if (command) {
       freertosxx::MutexLock lock(g_controller_mutex);
       g_somfy_controller->SendCommand(*command);
     }
-    (*service)->SetState(current_state);
   }
 }
 
