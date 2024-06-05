@@ -32,6 +32,9 @@ class PicoFlashRCS : public RollingCodeStorage {
 
   void Reset(uint16_t initial_code = 0);
 
+  RollingCodeType nextCode() override;
+
+ private:
   static void SetLeadingNZeroBits(std::span<uint8_t> s, int n);
 
   static uint16_t ReadCode();
@@ -51,16 +54,16 @@ class PicoFlashRCS : public RollingCodeStorage {
   static void EraseFlash(
       std::uintptr_t memory_address, std::ptrdiff_t num_bytes);
 
-  /**
-   * Get the next rolling code from the store. This should also increase the
-   * rolling code and store it persistently.
-   *
-   * @return next rolling code
-   */
-  RollingCodeType nextCode() override;
+  RollingCodeType code_ = 0;
+};
+
+class FixedRollingCodeStorage : public RollingCodeStorage {
+ public:
+  FixedRollingCodeStorage(uint16_t code) : code_(code) {}
+  uint16_t nextCode() override { return code_; }
 
  private:
-  RollingCodeType code_ = 0;
+  uint16_t code_;
 };
 
 }  // namespace jagsawning

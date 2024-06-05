@@ -7,6 +7,7 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "pico_rolling_code_storage.h"
 
 namespace jagsawning {
 class RfmOokDriverTestFriend {
@@ -17,15 +18,7 @@ class RfmOokDriverTestFriend {
 };
 }  // namespace jagsawning
 
-class FixedRollingCodeStorage : public RollingCodeStorage {
- public:
-  FixedRollingCodeStorage(uint16_t code) : code_(code) {}
-  uint16_t nextCode() override { return code_; }
-
- private:
-  uint16_t code_;
-};
-
+using jagsawning::FixedRollingCodeStorage;
 using jagsawning::RfmOokDriverTestFriend;
 using jagsawning::RfmSpiDriver;
 
