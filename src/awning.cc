@@ -200,7 +200,7 @@ void homeassistant_task(void*) {
   std::expected<std::unique_ptr<MqttClientWrapper>, err_t> client =
       MqttClientWrapper::Create(MQTT_HOST, MQTT_PORT, ConnectInfoFromDefines());
   if (!client) {
-    printf(
+    panic(
         "failed to connsect to %s due to error %d\n",
         MQTT_HOST,
         client.error());
