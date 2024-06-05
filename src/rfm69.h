@@ -86,8 +86,8 @@ class RfmSpiDriver {
 
   static constexpr uint8_t kRegisterWriteFlag = 0b1000'0000;
 
-  spi_inst_t* spi_;
-  int cs_pin_;
+  spi_inst_t* spi_ = nullptr;
+  int cs_pin_ = 0;
   std::array<int, 6> dio_pins_;
 };
 
