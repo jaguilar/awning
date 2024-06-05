@@ -11,7 +11,7 @@
 #include "portmacro.h"
 #include "projdefs.h"
 
-namespace awning {
+namespace jagsawning {
 
 freertosxx::StaticEventGroup command_event;
 HomeAssistantService* homeassisant_cover = nullptr;
@@ -92,6 +92,6 @@ void DoTest() {
   }
 }
 
-}  // namespace awning
+}  // namespace jagsawning
 
 extern "C" void main_task(void*) { awning::DoTest(); }

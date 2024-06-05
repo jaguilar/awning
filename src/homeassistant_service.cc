@@ -7,7 +7,7 @@
 #include "freertosxx/queue.h"
 #include "lwip/api.h"
 
-namespace awning {
+namespace jagsawning {
 
 #define MQTTDBG(...) printf(__VA_ARGS__)
 
@@ -371,4 +371,4 @@ void HomeAssistantService::SendDiscovery() {
       false);
 }
 
-}  // namespace awning
+}  // namespace jagsawning

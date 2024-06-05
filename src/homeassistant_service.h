@@ -15,7 +15,7 @@
 #include "lwip/apps/mqtt.h"
 #include "lwip/err.h"
 
-namespace awning {
+namespace jagsawning {
 
 // Wraps the lwIP MQTT client in a nice (?) C++ interface.
 class MqttClientWrapper {
