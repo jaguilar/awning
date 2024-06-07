@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
 
-if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/secrets.cmake)
-  include(secrets.cmake)
-endif()
-
 include(FetchContent)
 
 FetchContent_Declare(
