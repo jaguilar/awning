@@ -14,7 +14,7 @@ target_link_libraries(rfm69_test PRIVATE rfm69 pico_stdlib pico_time somfy pico_
 add_library(homeassistant_service homeassistant_service.cc)
 target_link_libraries(homeassistant_service PUBLIC common pico_lwip_mqtt freertosxx)
 target_compile_features(homeassistant_service PUBLIC cxx_std_23)
-target_compile_definitions(homeassistant_service PUBLIC -DMQTT_HOST="${MQTT_HOST}" -DMQTT_USER="${MQTT_USER}" -DMQTT_PASSWORD="${MQTT_PASSWORD}" -DMQTT_CLIENT_ID="awning_controller")
+target_compile_definitions(homeassistant_service PUBLIC -DMQTT_HOST="$ENV{MQTT_HOST}" -DMQTT_USER="$ENV{MQTT_USER}" -DMQTT_PASSWORD="$ENV{MQTT_PASSWORD}" -DMQTT_CLIENT_ID="awning_controller")
 
 add_pico_executable(homeassistant_service_test homeassistant_service_test.cc)
 target_link_libraries(homeassistant_service_test PRIVATE homeassistant_service pico_stdlib pico_lwip_mqtt freertosxx common)
