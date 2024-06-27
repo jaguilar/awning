@@ -11,15 +11,12 @@ target_compile_features(rfm69 PRIVATE cxx_std_23)
 add_pico_executable(rfm69_test rfm69_test.cc)
 target_link_libraries(rfm69_test PRIVATE rfm69 pico_stdlib pico_time somfy pico_rolling_code_storage)
 
-add_library(homeassistant_service homeassistant_service.cc)
-target_link_libraries(homeassistant_service PUBLIC common pico_lwip_mqtt freertosxx)
-target_compile_features(homeassistant_service PUBLIC cxx_std_23)
-target_compile_definitions(homeassistant_service PUBLIC -DMQTT_HOST="$ENV{MQTT_HOST}" -DMQTT_USER="$ENV{MQTT_USER}" -DMQTT_PASSWORD="$ENV{MQTT_PASSWORD}" -DMQTT_CLIENT_ID="awning_controller")
-
-add_pico_executable(homeassistant_service_test homeassistant_service_test.cc)
-target_link_libraries(homeassistant_service_test PRIVATE homeassistant_service pico_stdlib pico_lwip_mqtt freertosxx common)
-target_compile_features(homeassistant_service_test PUBLIC cxx_std_23)
-
 add_pico_executable(awning awning.cc)
-target_link_libraries(awning common jagsarduino somfy pico_rolling_code_storage pico_stdlib rfm69 pico_lwip_mqtt freertosxx homeassistant_service)
-target_compile_options(awning PRIVATE -DSOMFY_RADIO_ADDRESS=0x12345678)
+target_link_libraries(awning common jagsarduino lwipxx_mqtt homeassistant somfy pico_rolling_code_storage pico_stdlib rfm69 pico_lwip_mqtt freertosxx )
+target_compile_options(awning 
+    PRIVATE 
+    -DSOMFY_RADIO_ADDRESS=0x12345678 
+    -DMQTT_HOST="$ENV{MQTT_HOST}"
+    -DMQTT_USER="$ENV{MQTT_USER}" 
+    -DMQTT_PASSWORD="$ENV{MQTT_PASSWORD}"
+    -DMQTT_CLIENT_ID="jagsawning")

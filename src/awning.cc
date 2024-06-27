@@ -17,7 +17,7 @@
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/regs/intctrl.h"
-#include "homeassistant_service.h"
+#include "homeassistant/homeassistant.h"
 #include "lwip/api.h"
 #include "lwip/apps/mqtt.h"
 #include "lwip/err.h"
@@ -26,6 +26,7 @@
 #include "lwip/opt.h"
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
+#include "lwipxx/mqtt.h"
 #include "pico/printf.h"
 #include "pico/time.h"
 #include "pico/types.h"
@@ -194,39 +195,81 @@ void button_task(void *) {
   }
 }
 
+constexpr EventBits_t kOpen = 0b1;
+constexpr EventBits_t kClose = 0b10;
+constexpr EventBits_t kStop = 0b100;
 freertosxx::StaticEventGroup command_event;
 
-void homeassistant_task(void*) {
-  std::expected<std::unique_ptr<MqttClientWrapper>, err_t> client =
-      MqttClientWrapper::Create(MQTT_HOST, MQTT_PORT, ConnectInfoFromDefines());
-  if (!client) {
-    panic(
-        "failed to connsect to %s due to error %d\n",
-        MQTT_HOST,
-        client.error());
+EventBits_t CommandToBits(std::string_view s) {
+  using namespace homeassistant::cover_payloads;
+  if (s == kOpenCommand) {
+    return kOpen;
   }
+  if (s == kCloseCommand) {
+    return kClose;
+  }
+  if (s == kStopCommand) {
+    return kStop;
+  }
+  printf("unknown command from mqtt: %*s\n", s.size(), s.data());
+  return 0;
+}
+
+void homeassistant_task(void*) {
+  using lwipxx::MqttClient;
+  MqttClient::ConnectInfo connect_info{
+      .broker_address = MQTT_HOST,
+      .broker_port = MQTT_PORT,
+      .client_id = MQTT_CLIENT_ID,
+      .user = MQTT_USER,
+      .password = MQTT_PASSWORD,
+  };
+  homeassistant::SetAvailablityLwt(connect_info);
+
+  std::expected<std::unique_ptr<MqttClient>, err_t> maybe_mqtt =
+      MqttClient::Create(connect_info);
+  if (!maybe_mqtt) {
+    panic(
+        "failed to connect to %s due to error %d\n",
+        MQTT_HOST,
+        maybe_mqtt.error());
+  }
+  MqttClient& mqtt = **maybe_mqtt;
+
+  homeassistant::CommonDeviceInfo device_info("myawning");
+  device_info.component = "cover";
+  device_info.device_class = "awning";
+  device_info.name = "Backyard Awning";
+
+  homeassistant::JsonBuilder json;
+  homeassistant::AddCommonInfo(device_info, json);
+  homeassistant::AddAvailabilityDiscovery(json);
+  homeassistant::AddCoverInfo(device_info, json);
+  homeassistant::PublishDiscovery(mqtt, device_info, std::move(json).Finish());
 
   freertosxx::EventGroup eg;
-
-  std::expected<std::unique_ptr<HomeAssistantService>, err_t> service =
-      HomeAssistantService::Connect(
-          **client, [&](HomeAssistantService::Command cmd) {
-            printf("Received command %d\n", static_cast<int>(cmd));
-            command_event.Clear(
-                HomeAssistantService::kCmdClose |
-                HomeAssistantService::kCmdOpen |
-                HomeAssistantService::kCmdStop);
-            command_event.Set(cmd);
-          });
-  if (!service) {
-    panic(
-        "failed to connect to home assistant: %d\n",
-        lwip_strerr(service.error()));
+  while (ERR_OK != mqtt.Subscribe(
+                       homeassistant::AbsoluteChannel(
+                           device_info, homeassistant::topic_suffix::kCommand),
+                       MqttClient::kBestEffort,
+                       [](const MqttClient::Message& msg) {
+                         EventBits_t bits = CommandToBits(msg.data);
+                         command_event.Clear(kClose | kOpen | kStop);
+                         command_event.Set(bits);
+                       })) {
+    printf("failed to subscribe, retrying\n");
+    sleep_ms(5000);
   }
 
-  HomeAssistantService::State current_state = HomeAssistantService::kClosed;
-  HomeAssistantService::State dest_state = HomeAssistantService::kClosed;
+  namespace payloads = homeassistant::cover_payloads;
+  std::string_view current_state = payloads::kClosedState;
+  std::string_view dest_state = payloads::kClosedState;
   absolute_time_t time_when_state_change_done = at_the_end_of_time;
+
+  std::string state_topic = homeassistant::AbsoluteChannel(
+      device_info, homeassistant::topic_suffix::kState);
+
+  homeassistant::PublishAvailable(mqtt);
 
   while (true) {
     std::optional<TickType_t> timeout;
@@ -240,50 +283,52 @@ void homeassistant_task(void*) {
       }
     }
 
-    constexpr int kCoverCloseOpenTime = 8000;
+    constexpr int kCoverCloseOpenTime = 10000;
 
     // Wait for a command to be received.
     EventBits_t event = command_event.Wait(
-        HomeAssistantService::kCmdClose | HomeAssistantService::kCmdOpen |
-            HomeAssistantService::kCmdStop,
-        {.clear = true, .timeout = timeout});
+        kClose | kStop | kOpen, {.clear = true, .timeout = timeout});
     printf("recieved %d\n", event);
     std::optional<::Command> command;
     if (event == 0) {
       // Timed out.
       current_state = dest_state;
       time_when_state_change_done = at_the_end_of_time;
-    } else if (event & HomeAssistantService::kCmdStop) {
+    } else if (event & kStop) {
       // Sad story: if we send the stop command while the cover isn't actually
       // moving it will open. This isn't good but I don't know of any way to
       // address it.
       command = ::Command::My;
-      current_state = dest_state = HomeAssistantService::kStopped;
+      current_state = dest_state = payloads::kStoppedState;
       time_when_state_change_done = at_the_end_of_time;
-    } else if (event & HomeAssistantService::kCmdOpen) {
+    } else if (event & kOpen) {
       // In my deployment, what we want isn't full-open. The "My" command is
       // programmed to stop the awning at the right spot.
-      // 
+      //
       // Bug: if the cover is currently closing, pressing "My" will simply stop
       // it from closing. We don't have any true feedback from the cover to know
       // if it is closing or not, so we just have to hope. The less bad thing
       // would be to stop it closing, as opposed to another bad thing that could
       // happen which would be to open it.
       command = ::Command::My;
-      current_state = HomeAssistantService::kOpening;
-      dest_state = HomeAssistantService::kOpen;
+      current_state = payloads::kOpeningState;
+      dest_state = payloads::kOpenState;
       time_when_state_change_done =
           delayed_by_ms(get_absolute_time(), kCoverCloseOpenTime);
     } else {
-      assert(event & HomeAssistantService::kCmdClose);
+      assert(event & kClose);
       command = ::Command::Up;
-      current_state = HomeAssistantService::kClosing;
-      dest_state = HomeAssistantService::kClosed;
+      current_state = payloads::kClosingState;
+      dest_state = payloads::kClosedState;
       time_when_state_change_done =
           delayed_by_ms(get_absolute_time(), kCoverCloseOpenTime);
     }
 
-    (*service)->SetState(current_state);
+    if (ERR_OK !=
+        mqtt.Publish(
+            state_topic, current_state, MqttClient::kAtLeastOnce, true)) {
+      printf("error publishing state change\n");
+    }
     if (command) {
       freertosxx::MutexLock lock(g_controller_mutex);
       g_somfy_controller->SendCommand(*command);
